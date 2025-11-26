@@ -12,11 +12,21 @@ A lightweight, dependency-free asynchronous HTTP server built using Python's `as
 
 ## Installation
 
-This project does not require any external packages. You can clone the repository and use it directly. Ensure you are using Python 3.11 or newer.
+### Clone the repository, install dependencies and build
 
 ```bash
-git clone <repository_url>
+git clone https://github.com/Chen-HR/AsyncHTTPServer.git
 cd asynchttpserver
+uv init
+uv pip install -r pyproject.toml
+uv build
+cd ..
+```
+
+### Install
+
+```bash
+uv pip install asynchttpserver/dist/*.whl
 ```
 
 ## Usage
