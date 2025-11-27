@@ -12,21 +12,28 @@ A lightweight, dependency-free asynchronous HTTP server built using Python's `as
 
 ## Installation
 
-### Clone the repository, install dependencies and build
+### (Optional) Create a Virtual Environment
+
+```bash
+uv venv .venv
+```
+
+### Clone the repository
 
 ```bash
 git clone https://github.com/Chen-HR/AsyncHTTPServer.git
-cd asynchttpserver
-uv init
-uv pip install -r pyproject.toml
-uv build
-cd ..
 ```
 
 ### Install
 
 ```bash
-uv pip install asynchttpserver/dist/*.whl
+uv pip install ./AsyncHTTPServer
+```
+
+### (Optional) Remove the repository
+
+```bash
+rm -rf AsyncHTTPServer
 ```
 
 ## Usage
