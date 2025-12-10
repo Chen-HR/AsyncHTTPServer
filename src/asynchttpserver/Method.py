@@ -5,12 +5,11 @@ class Method:
     return f"Method({self.name})"
   def __eq__(self, other: "Method") -> bool: # type: ignore
     return self.name == other.name
+  _map: dict[str, "Method"]
   @classmethod
   def query(cls, name: str) -> "Method":
-    for Method in cls.__dict__.values():
-      if isinstance(Method, cls):
-        if Method.name == name:
-          return Method
+    if name in cls._map:
+      return cls._map[name]
     raise ValueError(f"Unknown Method name: {name}")
   GET    : "Method"
   POST   : "Method"
@@ -31,3 +30,5 @@ Method.CONNECT= Method("CONNECT")
 Method.OPTIONS= Method("OPTIONS")
 Method.TRACE  = Method("TRACE")
 Method.PATCH  = Method("PATCH")
+
+Method._map = {method.name: method for method in Method.__dict__.values() if isinstance(method, Method)}

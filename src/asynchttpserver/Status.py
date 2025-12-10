@@ -6,12 +6,11 @@ class Status:
     return f"Status({self.code}, {self.name})"
   def __eq__(self, other: "Status") -> bool: # type: ignore
     return self.code == other.code and self.name == other.name
+  _map: dict[int, "Status"]
   @classmethod
   def query(cls, code: int) -> "Status":
-    for status in cls.__dict__.values():
-      if isinstance(status, cls):
-        if status.code == code:
-          return status
+    if code in cls._map:
+      return cls._map[code]
     raise ValueError(f"Unknown status code: {code}")
   # 1xx Informational
   CONTINUE              : "Status"
@@ -116,3 +115,5 @@ Status.BAD_GATEWAY           = Status(502, "Bad Gateway")
 Status.SERVICE_UNAVAILABLE   = Status(503, "Service Unavailable")
 Status.GATEWAY_TIMEOUT       = Status(504, "Gateway Timeout")
 Status.VERSION_NOT_SUPPORTED = Status(505, "HTTP Version Not Supported")
+
+Status._map = {status.code: status for status in Status.__dict__.values() if isinstance(status, Status)}
