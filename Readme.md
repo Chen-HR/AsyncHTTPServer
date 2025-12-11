@@ -5,10 +5,11 @@ A lightweight, dependency-free asynchronous HTTP server built using Python's `as
 ## Features
 
 - **Fully Asynchronous**: Built on `asyncio` for high-performance, non-blocking I/O.
+- **Flask-style Decorators**: Register routes easily using `@app.route` and `@app.mount` decorators.
 - **Lightweight & Dependency-Free**: Relies only on Python's standard libraries.
-- **Extensible Handler System**: Implement custom logic by extending the `AsyncRequestHandler` abstract base class.
-- **Flexible Routing**: A built-in router (`AsyncRequestRouteHandler`) supports path and method-based routing, including nested routers for modular application design.
-- **Structured Message Parsing**: Clear separation of `RequestMessage` and `ResponseMessage` for robust HTTP message handling.
+- **Flexible Routing**: Supports method-based routing (`GET`, `POST`, etc.) and nested sub-routers (Blueprints pattern).
+- **Binary Data Support**: Optimized `RequestMessage` handling with `bytes` body for file uploads and binary payloads.
+- **Memory Safety**: Configurable limits for header and body sizes to prevent OOM on microcontrollers.
 
 ## Installation
 
@@ -38,22 +39,18 @@ rm -rf AsyncHTTPServer
 
 ## Usage
 
-The following example demonstrates how to set up a server with multiple routes, including a nested router for an `/api` endpoint.
+The following example demonstrates how to set up a server using the new decorator syntax, including handling POST data and mounting a sub-router for an `/api` endpoint.
 
 ```python
 import asyncio
 import logging
 import json
 
-# Import necessary components from the server library
-from src import (
-    AsyncServer,
-    AsyncRequestResponseHandler,
-    AsyncRequestRouteHandler
-)
-from src.Message import RequestMessage, ResponseMessage
-from src.Status import Status
-from src.Method import Method
+# Import necessary components
+from asynchttpserver import AsyncServer, AsyncRequestRouteHandler
+from asynchttpserver.Message import RequestMessage, ResponseMessage
+from asynchttpserver.Status import Status
+from asynchttpserver.Method import Method
 
 # Setup basic logging
 logging.basicConfig(
@@ -61,9 +58,14 @@ logging.basicConfig(
   level=logging.INFO,
   datefmt="%Y/%m/%d %H:%M:%S"
 )
+logger = logging.getLogger("App")
 
-# --- 1. Define Handler Functions ---
+# --- 1. Initialize the Main Router ---
+app = AsyncRequestRouteHandler(logger=logger)
 
+# --- 2. Define Routes using Decorators ---
+
+@app.route("/", methods=[Method.GET])
 async def handle_root(request: RequestMessage) -> ResponseMessage:
   """Handles requests to the root path."""
   html_content = """
@@ -71,76 +73,77 @@ async def handle_root(request: RequestMessage) -> ResponseMessage:
     <head><title>Python AsyncHTTP Server</title></head>
     <body>
       <h1>Welcome!</h1>
-      <p>This is the root page of the Simple Asynchronous HTTP Server.</p>
-      <p><a href="/hello">Say Hello</a></p>
-      <p><a href="/api/info">View API Info</a></p>
+      <p>This is the root page.</p>
+      <ul>
+        <li><a href="/hello">Say Hello</a></li>
+        <li><a href="/api/info">View API Info</a></li>
+      </ul>
     </body>
   </html>
   """
   return ResponseMessage(
       status=Status.OK,
       header={"Content-Type": "text/html; charset=utf-8"},
-      body=html_content
+      body=html_content # Auto-encoded to UTF-8 bytes
   )
 
+@app.route("/hello", methods=[Method.GET, Method.POST])
 async def handle_hello(request: RequestMessage) -> ResponseMessage:
-  """A simple plain-text endpoint."""
+  """Handles both GET and POST requests."""
+  if request.method == Method.POST:
+      # Body is bytes, so decode it
+      name = request.body.decode('utf-8') or "Stranger"
+      msg = f"Hello, {name}! (Received via POST)"
+  else:
+      msg = "Hello! Send a POST request with your name to see more."
+
   return ResponseMessage(
       status=Status.OK,
       header={"Content-Type": "text/plain; charset=utf-8"},
-      body="Hello from the AsyncHTTP server!"
+      body=msg
   )
 
-async def handle_api_info(request: RequestMessage) -> ResponseMessage:
-  """A JSON API endpoint."""
-  info_body = json.dumps({"service": "api", "version": "1.0", "status": "ok"})
-  return ResponseMessage(
-      status=Status.OK,
-      header={"Content-Type": "application/json"},
-      body=info_body
-  )
+# --- 3. Mount a Sub-Router (Nested Routing) ---
 
-# --- 2. Setup Routing ---
+@app.mount("/api", methods=[Method.GET])
+def api_router_factory():
+    """
+    Creates and configures a sub-router. 
+    Routes defined here will be prefixed with /api (e.g., /api/info).
+    """
+    api = AsyncRequestRouteHandler(logger=logger)
+    
+    @api.route("/info", methods=[Method.GET])
+    async def api_info(request: RequestMessage) -> ResponseMessage:
+        data = {"service": "AsyncHTTPServer", "version": "2.0", "status": "active"}
+        return ResponseMessage(
+            status=Status.OK,
+            header={"Content-Type": "application/json"},
+            body=json.dumps(data)
+        )
+    
+    return api
 
-# Create handlers from the functions
-root_handler = AsyncRequestResponseHandler(handle_root)
-hello_handler = AsyncRequestResponseHandler(handle_hello)
-api_info_handler = AsyncRequestResponseHandler(handle_api_info)
-
-# Create a sub-router for the /api path
-api_router = AsyncRequestRouteHandler()
-api_router.add_route("/info", api_info_handler, method=Method.GET)
-
-# Create the main router and add routes
-main_router = AsyncRequestRouteHandler()
-main_router.add_route("/", root_handler, method=Method.GET)
-main_router.add_route("/hello", hello_handler, method=Method.GET)
-main_router.add_route("/api", api_router) # Mount the API sub-router
-
-# --- 3. Main async function to run the server ---
+# --- 4. Main async function to run the server ---
 async def main():
   # Initialize the server with the main router on port 8080
-  server = AsyncServer(root_handler=main_router, port=8080)
+  server = AsyncServer(root_handler=app, port=8080, logger=logger)
 
   try:
     await server.start()
     print("Server is running on http://localhost:8080. Press Ctrl+C to stop.")
     # Keep the server running
-    await asyncio.Event().wait()
+    while True:
+        await asyncio.sleep(3600)
   except KeyboardInterrupt:
     print("\nShutting down server...")
   finally:
     await server.stop()
 
-# --- 4. Run the application ---
+# --- 5. Run the application ---
 if __name__ == "__main__":
   try:
     asyncio.run(main())
   except Exception as e:
     logging.error(f"Failed to run the application: {e}")
-
 ```
-
-## License
-
-This project is not licensed. All rights are reserved.
