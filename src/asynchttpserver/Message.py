@@ -24,7 +24,7 @@ class Message(abc.ABC):
     if isinstance(body, str):
       self.body = body.encode("utf-8")
     else:
-      self.body = body
+      self.body: bytes = body
       
     self.version = version
 
