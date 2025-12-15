@@ -8,7 +8,7 @@ except ImportError:
   from asynchttpserver.Method import Method
 
 class Message(abc.ABC):
-  def __init__(self, header: dict[str, str], body: bytes = b"", version: str = "1.1"):
+  def __init__(self, header: dict[str, str], body: bytes = b"", version: str = "1.1", encoding: str = "utf-8"):
     """
     Initializes a Message object.
 
@@ -22,7 +22,7 @@ class Message(abc.ABC):
     
     # Ensure body is bytes (Auto-encode if str is passed by accident, though type hint says bytes)
     if isinstance(body, str):
-      self.body = body.encode("utf-8")
+      self.body = body.encode(encoding)
     else:
       self.body: bytes = body
       
@@ -42,7 +42,7 @@ class Message(abc.ABC):
     # Note: Keys are stored in lowercase. 
     return "\r\n".join([f"{key}: {value}" for key, value in self.header.items()])
 
-  def pack(self) -> bytes:
+  def pack(self, encoding: str = "utf-8") -> bytes:
     """
     Packs the message into bytes for transmission.
     """
@@ -53,8 +53,7 @@ class Message(abc.ABC):
     header_block = self._header()
     
     # Assemble: Title + Headers + Empty Line + Body
-    # Encode headers as UTF-8 (ASCII compatible)
-    head_bytes = f"{title_line}\r\n{header_block}\r\n\r\n".encode("utf-8")
+    head_bytes = f"{title_line}\r\n{header_block}\r\n\r\n".encode(encoding)
     
     return head_bytes + self.body
 
@@ -63,8 +62,8 @@ class Message(abc.ABC):
     raise NotImplementedError("Use specific unpack methods in subclasses")
 
 class RequestMessage(Message):
-  def __init__(self, method: Method, path: str, header: dict[str, str], body: bytes = b"", version: str = "1.1"):
-    super().__init__(header, body, version)
+  def __init__(self, method: Method, path: str, header: dict[str, str], body: bytes = b"", version: str = "1.1", encoding: str = "utf-8"):
+    super().__init__(header, body, version, encoding)
     self.method = method
     self.path = path
 
@@ -72,12 +71,12 @@ class RequestMessage(Message):
     return f"{self.method.name} {self.path} {self.protocol}"
 
   @classmethod
-  def unpack_header(cls, header_data: bytes) -> "RequestMessage":
+  def unpack_header(cls, header_data: bytes, encoding="utf-8") -> "RequestMessage":
     """
     Parses ONLY the HTTP header section from bytes.
     """
     try:
-      text = header_data.decode("utf-8")
+      text = header_data.decode(encoding)
       lines = text.split('\r\n')
       
       request_line = lines[0]
@@ -113,15 +112,15 @@ class RequestMessage(Message):
       raise ValueError(f"Failed to parse HTTP request headers: {e}")
 
 class ResponseMessage(Message):
-  def __init__(self, status: Status, header: dict[str, str], body: bytes = b"", version: str = "1.1"):
-    super().__init__(header, body, version)
+  def __init__(self, status: Status, header: dict[str, str], body: bytes = b"", version: str = "1.1", encoding: str = "utf-8"):
+    super().__init__(header, body, version, encoding)
     self.status = status
 
   def _title(self) -> str:
     return f"{self.protocol} {self.status.code} {self.status.name}"
 
   @classmethod
-  def unpack(cls, data: bytes) -> "ResponseMessage":
+  def unpack(cls, data: bytes, encoding: str = "utf-8") -> "ResponseMessage":
     """
     Parses a complete raw HTTP response.
     """
@@ -130,7 +129,7 @@ class ResponseMessage(Message):
       header_bytes = parts[0]
       body_bytes = parts[1] if len(parts) > 1 else b""
       
-      text = header_bytes.decode("utf-8")
+      text = header_bytes.decode(encoding)
       header_lines = text.split('\r\n')
       
       status_line = header_lines[0]
