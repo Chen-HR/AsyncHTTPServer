@@ -1,6 +1,6 @@
 [project]
 name = "asynchttpserver"
-version = "2.1.0"
+version = "2.1.1"
 authors = [
   {name = "HRChen", email = "tn918419@gmail.com"},
 ]
@@ -24,6 +24,6 @@ dependencies = [
   "logging>=0.4.9.6",
 ]
 
-[build-system]
-requires = ["uv_build"]
-build-backend = "uv_build"
+# [build-system]
+# requires = ["uv_build"]
+# build-backend = "uv_build"

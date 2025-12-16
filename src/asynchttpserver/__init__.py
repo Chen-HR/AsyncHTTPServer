@@ -54,6 +54,7 @@ class AsyncRequestRouteHandler(AsyncRequestHandler):
       methods = [Method.GET]
       
     for method in methods:
+      if self.logger: self.logger.debug(f"Registering route {method.name} {path}")
       method_name = method.name
       if method_name not in self._routes:
         self._routes[method_name] = {}
