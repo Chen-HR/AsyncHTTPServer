@@ -4,17 +4,5 @@ requires-python = ">=3.11"
 
 [[package]]
 name = "asynchttpserver"
-version = "2.0.0"
+version = "2.2.0"
 source = { editable = "." }
-dependencies = [
-    { name = "logging" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "logging", specifier = ">=0.4.9.6" }]
-
-[[package]]
-name = "logging"
-version = "0.4.9.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/93/4b/979db9e44be09f71e85c9c8cfc42f258adfb7d93ce01deed2788b2948919/logging-0.4.9.6.tar.gz", hash = "sha256:26f6b50773f085042d301085bd1bf5d9f3735704db9f37c1ce6d8b85c38f2417", size = 96029 }

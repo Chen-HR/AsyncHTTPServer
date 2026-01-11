@@ -3,6 +3,8 @@ class Status:
     self.code = code
     self.name = name
   def __str__(self) -> str:
+    return f"{self.code} {self.name}"
+  def __repr__(self) -> str:
     return f"Status({self.code}, {self.name})"
   def __eq__(self, other: "Status") -> bool: # type: ignore
     return self.code == other.code and self.name == other.name
